@@ -1,17 +1,23 @@
 from flask import Flask, jsonify, request, Response
+import json
 
 app = Flask(__name__)
 
 books = [
     {
-        'name': 'The first name',
+        'name': 'A',
         'price': 7.99,
         'isbn': 123123123
     },
     {
-        'name' : 'The second name',
-        'price': 9.77,
-        'isbn': 321321900
+        'name': 'B',
+        'price': 8.99,
+        'isbn': 321321321
+    },
+    {
+        'name': 'C',
+        'price': 9.99,
+        'isbn': 456456456
     }
 ]
 
@@ -31,10 +37,16 @@ def add_book():
             "isbn": request_data['isbn']
         }
         books.insert(0, new_book)
-        Response("", 201, "")
-        return "True"
+        response = Response("", 201, mimetype='application/json')
+        response.headers['Location'] = "/books/" + str(new_book['isbn'])
+        return response
     else:
-        return "False"
+        invalidBookObjectErrorMsg = {
+            "error": "Invalid book object passed in request",
+            "helpString": "Data passed in similar to this {'name': 'bookname', 'price': 9.99, 'isbn': 123456789}"
+        }
+        response = Response(json.dumps(invalidBookObjectErrorMsg), status=400, mimetype='application/json');
+        return response
 
 #GET /store
 @app.route('/books')
@@ -53,5 +65,24 @@ def get_book_by_isbn(isbn):
                 'price': book["price"]
             }
     return jsonify(return_value)
+
+#PUT
+@app.route('/books/<int:isbn>', methods=['PUT'])
+def replace_book(isbn):
+    request_data = request.get_json()
+    new_book = {
+        'name': request_data['name'],
+        'price': request_data['price'],
+        'isbn': isbn
+    }
+
+    i = 0;
+    for book in books:
+        currentIsbn = book["isbn"]
+        if currentIsbn == isbn:
+            book[i] = new_book
+        i += 1
+    response = Response("", status=204, mimetype='application/json')
+    return response
 
 app.run(port=5000)
